@@ -10,8 +10,6 @@
 [![karellen-rr-mcp Downloads Per Week](https://img.shields.io/pypi/dw/karellen-rr-mcp?logo=pypi)](https://pypi.org/project/karellen-rr-mcp/)
 [![karellen-rr-mcp Downloads Per Month](https://img.shields.io/pypi/dm/karellen-rr-mcp?logo=pypi)](https://pypi.org/project/karellen-rr-mcp/)
 
-MCP Server for rr Reverse Debugging.
-
 ## Overview
 
 `karellen-rr-mcp` is an [MCP](https://modelcontextprotocol.io/) (Model Context Protocol)
@@ -271,6 +269,87 @@ For non-crash bugs (wrong output, logic errors, test assertion failures):
 |------|-------------|
 | `rr_checkpoint_save` | Save checkpoint at current position. |
 | `rr_checkpoint_restore` | Restore to saved checkpoint. |
+
+## Troubleshooting
+
+### AMD Zen CPUs
+
+rr does not work reliably on AMD Zen CPUs unless the hardware SpecLockMap optimization
+is disabled. When running rr on Zen you may see:
+
+> On Zen CPUs, rr will not work reliably unless you disable the hardware SpecLockMap
+> optimization.
+
+**Workaround:** run the `zen_workaround.py` script from the
+[rr source tree](https://github.com/rr-debugger/rr) as root:
+
+```bash
+sudo python3 scripts/zen_workaround.py
+```
+
+This fix must be reapplied after each reboot or suspend. To make it persist, you must
+also stabilize the Speculative Store Bypass (SSB) mitigation by adding one of the
+following kernel command-line parameters:
+
+- `spec_store_bypass_disable=on` — fully enables SSB mitigation (has performance
+  implications)
+- `nospec_store_bypass_disable` — fully disables SSB mitigation (has security
+  implications)
+
+Alternatively, build and load the `zen_workaround.ko` kernel module from the rr source
+tree, which prevents SSB mitigation from resetting the workaround without requiring
+kernel parameters.
+
+See the [rr Zen wiki page](https://github.com/rr-debugger/rr/wiki/Zen) for full details.
+
+### MSR kernel module not loaded
+
+The `zen_workaround.py` script accesses CPU model-specific registers via `/dev/cpu/0/msr`,
+which requires the `msr` kernel module. On many distributions this module is not loaded
+by default. If the script fails, load it manually:
+
+```bash
+sudo modprobe msr
+```
+
+To make this persistent across reboots:
+
+```bash
+echo 'msr' | sudo tee /etc/modules-load.d/msr.conf
+```
+
+**Note:** on systems with Secure Boot enabled, the `msr` module may fail to load because
+it is not signed. You may need to either disable Secure Boot in your UEFI/BIOS settings,
+or sign the module with your own Machine Owner Key (MOK).
+
+### MADV_GUARD_INSTALL crash on kernel 6.13+ with glibc 2.42+
+
+Linux 6.13 introduced `MADV_GUARD_INSTALL` (madvise advice 102) for lightweight stack
+guard pages. glibc 2.42+ (e.g. Fedora 43) uses this in `pthread_create`. rr 5.9.0
+(the latest release, from February 2025) does not recognize this madvise advice value
+and crashes with:
+
+```
+Assertion `t->regs().syscall_result_signed() == -syscall_state.expect_errno' failed to hold.
+Expected EINVAL for 'madvise' but got result 0 (errno SUCCESS); unknown madvise(102)
+```
+
+This was fixed in rr git master
+([commit 34ff3a7](https://github.com/rr-debugger/rr/commit/34ff3a700), August 2025)
+but has not been included in a release yet. **You must build rr from source** to get
+the fix:
+
+```bash
+git clone https://github.com/rr-debugger/rr.git
+cd rr
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+```
+
+See [rr-debugger/rr#4044](https://github.com/rr-debugger/rr/issues/4044) and
+[rr-debugger/rr#3995](https://github.com/rr-debugger/rr/issues/3995) for details.
 
 ## License
 
