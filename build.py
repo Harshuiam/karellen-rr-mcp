@@ -23,7 +23,7 @@ use_plugin("python.coveralls")
 use_plugin("python.distutils")
 
 name = "karellen-rr-mcp"
-version = "0.1.0"
+version = "0.1.1.dev"
 
 summary = "MCP Server for rr Reverse Debugging"
 authors = [Author("Karellen, Inc.", "supervisor@karellen.co")]
