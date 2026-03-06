@@ -69,7 +69,7 @@ def check_perf_event_paranoid():
     try:
         with open("/proc/sys/kernel/perf_event_paranoid", "r") as f:
             value = int(f.read().strip())
-        return value <= 1
+        return value == 1
     except (IOError, ValueError):
         return False
 

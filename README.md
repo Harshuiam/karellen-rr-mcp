@@ -24,7 +24,7 @@ GDB/MI, inspecting program state without modifying source code.
 - **[rr](https://rr-project.org/)** installed and on PATH
 - **[GDB](https://www.sourceware.org/gdb/)** installed and on PATH (used by rr for debugging)
 - **Python** >= 3.10
-- **`perf_event_paranoid`** set to allow recording (`<= 1`):
+- **`perf_event_paranoid`** set to `1` to allow recording:
   ```bash
   sudo sysctl kernel.perf_event_paranoid=1
   ```
@@ -48,8 +48,7 @@ sudo pacman -S rr gdb
 
 ### Configuring perf_event_paranoid
 
-rr requires access to hardware performance counters. Set `perf_event_paranoid` to `1`
-or lower:
+rr requires access to hardware performance counters. Set `perf_event_paranoid` to `1`:
 
 ```bash
 sudo sysctl kernel.perf_event_paranoid=1
